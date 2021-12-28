@@ -3,20 +3,21 @@ from collections import defaultdict
 import pandas as pd
 import numpy as np
 
-users = pd.read_json('data/raw/users.jsonl', lines=True)
-products = pd.read_json('data/raw/products.jsonl', lines=True)
-sessions = pd.read_json('data/raw/sessions.jsonl', lines=True)
+users = pd.read_json('data/raw_v2/users.jsonl', lines=True)
+products = pd.read_json('data/raw_v2/products.jsonl', lines=True)
+sessions = pd.read_json('data/raw_v2/sessions.jsonl', lines=True)
+deliveries = pd.read_json('data/raw_v2/deliveries.jsonl', lines=True)
 
 wrong_price_products = list(products[products["price"] < 0]["product_id"].values) + list(products[products["price"] > 10000]["product_id"].values)
 
-products = products.drop(products[products["price"] < 0].index)
-products = products.drop(products[products["price"] > 10000].index)
-sessions = sessions.drop(sessions[sessions["user_id"].isnull()].index)
-sessions = sessions.drop(sessions[sessions["product_id"].isnull()].index)
+# products = products.drop(products[products["price"] < 0].index)
+# products = products.drop(products[products["price"] > 10000].index)
+# sessions = sessions.drop(sessions[sessions["user_id"].isnull()].index)
+# sessions = sessions.drop(sessions[sessions["product_id"].isnull()].index)
 
-for idx in wrong_price_products:
-    sessions = sessions.drop(sessions[sessions["product_id"] == idx].index)
-sessions = sessions.astype({"user_id": np.int64, "product_id": np.int64})
+# for idx in wrong_price_products:
+#     sessions = sessions.drop(sessions[sessions["product_id"] == idx].index)
+# sessions = sessions.astype({"user_id": np.int64, "product_id": np.int64})
 
 
 def analyze_users():
@@ -172,6 +173,14 @@ def analyze_sessions():
     calculate_average_daily_session_number()
 
 
+def analyze_deliveries():
+    delivery_lengths = (pd.to_datetime(deliveries.delivery_timestamp) - pd.to_datetime(deliveries.purchase_timestamp)).dt.total_seconds()
+
+    print("Longest delivery ", max(delivery_lengths))
+    print("Shortest delivery ", min(delivery_lengths))
+    print("Average delivery ", statistics.mean(delivery_lengths))
+
+
 def calculate_average_daily_session_length():
     session_unique_dates = sessions["timestamp"].map(pd.Timestamp.date).unique()
     average_session_length_by_day = defaultdict(float)
@@ -224,6 +233,7 @@ def sort_sessions_by_date():
 analyze_users()
 analyze_products()
 analyze_sessions()
+analyze_deliveries()
 # sort_sessions_by_date()
 
 # print(products[products["price"] < 0].count())
