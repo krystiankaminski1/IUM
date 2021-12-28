@@ -1,4 +1,12 @@
 import pandas as pd
+from sklearn.metrics import mutual_info_score
+
+
+def parse_users(df):
+    cities = pd.get_dummies(df["city"])
+    df = df.drop(["name", "city", "street"], axis=1)
+
+    return pd.concat([df, cities], axis=1)
 
 
 def parse_products(df):
@@ -10,7 +18,7 @@ def parse_sessions(df):
     return df
 
 
-def merge_data(products, sessions):
+def merge_data(users, products, sessions):
     df = pd.merge(sessions, products, on="product_id", how="inner")
     df = df.sort_values(["user_id", "timestamp", "session_id"])
 
@@ -60,24 +68,37 @@ def merge_data(products, sessions):
         merged_sessions.append(row)
 
     merged_sessions_df = pd.DataFrame(merged_sessions)
+    merged_sessions_df = pd.merge(merged_sessions_df, users, on='user_id', how='inner')
 
     return merged_sessions_df
 
 
 def read_and_parse_data():
-    products_file = 'data/raw_v2/products.jsonl'
-    sessions_file = 'data/raw_v2/sessions.jsonl'
+    users_file = "data/raw_v2/users.jsonl"
+    products_file = "data/raw_v2/products.jsonl"
+    sessions_file = "data/raw_v2/sessions.jsonl"
 
+    users_df = pd.read_json(users_file, lines=True)
     products_df = pd.read_json(products_file, lines=True)
     sessions_df = pd.read_json(sessions_file, lines=True)
 
+    users_df = parse_users(users_df)
     products_df = parse_products(products_df)
     sessions_df = parse_sessions(sessions_df)
 
-    ready_data = merge_data(products_df, sessions_df)
+    ready_data = merge_data(users_df, products_df, sessions_df)
     return ready_data
 
 
 if __name__ == '__main__':
     data = read_and_parse_data()
-    data.to_csv('data/data.csv', index=None)
+    data.to_csv('data/data_with_cities.csv', index=None)
+
+    #korelacja
+    data.corr(method="pearson").to_csv("data/correlation_pearson.csv")
+
+    #informacja wzajemna(przyklad)
+    print(mutual_info_score(data["successful"], data["discount"]))
+
+
+
