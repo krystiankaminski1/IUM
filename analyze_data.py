@@ -242,3 +242,10 @@ analyze_deliveries()
 # print(set(sessions["product_id"].unique()).issubset(products["product_id"].unique()))
 # print(sessions["product_id"].unique())
 # print(products["product_id"].unique())
+
+# df = sessions
+# df = df.drop(['purchase_id'], axis=1, inplace=False)
+# df2 = products.drop(['category_path'], axis=1, inplace=False)
+# df3 = pd.merge(df, df2, on="product_id", how="inner")
+# df3 = df3.sort_values(["user_id", "timestamp", "session_id"])
+# df3.to_json("data/test4.jsonl", date_format="iso", date_unit="s", orient='records', lines=True)
