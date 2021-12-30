@@ -10,7 +10,14 @@ def parse_users(df):
 
 
 def parse_products(df):
-    return df.drop(['category_path'], axis=1, inplace=False)
+    encoded = df['category_path'].str.split(';')
+    encoded = pd.get_dummies(encoded.apply(pd.Series).stack()).groupby(level=0).sum()
+    encoded.columns = encoded.columns.str.replace(' ', '_')
+    encoded.columns = ['category_' + str(col) for col in encoded.columns]
+    df = pd.concat([df, encoded], axis=1)
+
+    df = df.drop(['category_path'], axis=1, inplace=False)
+    return df
 
 
 def parse_sessions(df):
@@ -23,6 +30,9 @@ def merge_data(users, products, sessions):
     df = df.sort_values(["user_id", "timestamp", "session_id"])
 
     session_ids = df["session_id"].unique()
+
+    columns = df.columns.tolist()
+    category_columns = [col for col in columns if col.startswith('category_')]
 
     merged_sessions = []
     for session_id in session_ids:
@@ -53,6 +63,8 @@ def merge_data(users, products, sessions):
         min_rating = round(session["rating"].min(), 1)
         max_rating = round(session["rating"].max(), 1)
 
+        summed_categories = session[category_columns].sum().to_dict()
+
         row = {"session_length": session_length,
                "discount": discount,
                "user_id": user_id,
@@ -65,6 +77,7 @@ def merge_data(users, products, sessions):
                "max_rating": max_rating,
                "prev_success_ratio": prev_success_ratio
                }
+        row.update(summed_categories)
         merged_sessions.append(row)
 
     merged_sessions_df = pd.DataFrame(merged_sessions)
@@ -92,10 +105,10 @@ def read_and_parse_data():
 
 if __name__ == '__main__':
     data = read_and_parse_data()
-    data.to_csv('data/data_with_cities.csv', index=None)
+    data.to_csv('data/data_with_categories.csv', index=None)
 
     #korelacja
-    data.corr(method="pearson").to_csv("data/correlation_pearson.csv")
+    data.corr(method="spearman").to_csv("data/correlation_spearman_with_categories.csv")
 
     #informacja wzajemna(przyklad)
     print(mutual_info_score(data["successful"], data["discount"]))
